@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -67,6 +67,11 @@ enum essid_bcast_type {
 	eBCAST_HIDDEN = 2,
 };
 
+#ifdef FEATURE_SUPPORT_LGE
+/*LGE_CHNAGE_S, DRIVER scan_suppress command, 2017-07-12, moon-wifi@lge.com*/
+unsigned long static g_scansuppress_mode = 0;
+/*LGE_CHNAGE_E, DRIVER scan_suppress command, 2017-07-12, moon-wifi@lge.com*/
+#endif
 /**
  * hdd_vendor_scan_callback() - Scan completed callback event
  * @hddctx: HDD context
@@ -481,6 +486,8 @@ static int __wlan_hdd_cfg80211_scan(struct wiphy *wiphy,
 	struct scan_params params = {0};
 	struct wlan_objmgr_vdev *vdev;
 
+	hdd_enter();
+
 	if (cds_is_fw_down()) {
 		hdd_err("firmware is down, scan cmd cannot be processed");
 		return -EINVAL;
@@ -505,6 +512,16 @@ static int __wlan_hdd_cfg80211_scan(struct wiphy *wiphy,
 	if (!sme_is_session_id_valid(hdd_ctx->mac_handle, adapter->session_id))
 		return -EINVAL;
 
+
+#ifdef FEATURE_SUPPORT_LGE
+/*LGE_CHNAGE_S, DRIVER scan_suppress command, 2017-07-12, moon-wifi@lge.com*/
+	if ((g_scansuppress_mode == 1) && (request->wdev->iftype != NL80211_IFTYPE_AP)) {
+		hdd_err("lge priv-command scansuppress is enabled, scan is not allowed");
+		return -EPERM;
+	}
+/*LGE_CHNAGE_E, DRIVER scan_suppress command, 2017-07-12, moon-wifi@lge.com*/
+#endif
+
 	if ((eConnectionState_Associated ==
 			WLAN_HDD_GET_STATION_CTX_PTR(adapter)->
 						conn_info.connState) &&
@@ -515,6 +532,10 @@ static int __wlan_hdd_cfg80211_scan(struct wiphy *wiphy,
 		schedule_work(&adapter->scan_block_work);
 		return 0;
 	}
+
+	hdd_debug("Device_mode %s(%d)",
+		hdd_device_mode_to_string(adapter->device_mode),
+		adapter->device_mode);
 
 	/*
 	 * IBSS vdev does not need to scan to establish
@@ -686,7 +707,7 @@ static int __wlan_hdd_cfg80211_scan(struct wiphy *wiphy,
 error:
 	if (params.default_ie.ptr)
 		qdf_mem_free(params.default_ie.ptr);
-
+	hdd_exit();
 	return status;
 }
 
@@ -1572,3 +1593,17 @@ int hdd_scan_context_init(struct hdd_context *hdd_ctx)
 {
 	return 0;
 }
+
+#ifdef FEATURE_SUPPORT_LGE
+/*LGE_CHNAGE_S, DRIVER scan_suppress command, 2017-07-12, moon-wifi@lge.com*/
+void wlan_hdd_set_scan_suppress(unsigned long on_off);
+void wlan_hdd_set_scan_suppress(unsigned long on_off) {
+	if (on_off == 1) {
+		g_scansuppress_mode = 1;
+	}
+	else {
+		g_scansuppress_mode = 0;
+	}
+}
+/*LGE_CHNAGE_E, DRIVER scan_suppress command, 2017-07-12, moon-wifi@lge.com*/
+#endif

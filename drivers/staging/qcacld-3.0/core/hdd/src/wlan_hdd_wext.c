@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018, 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -2890,7 +2890,7 @@ static int hdd_check_wext_control(enum hdd_wext_control wext_control,
 		hdd_err_rl("Rejecting disabled ioctl %x", info->cmd);
 		return -ENOTSUPP;
 	case hdd_wext_deprecated:
-		hdd_nofl_debug("Using deprecated ioctl %x", info->cmd);
+		hdd_warn_rl("Using deprecated ioctl %x", info->cmd);
 		return 0;
 	case hdd_wext_enabled:
 		return 0;
@@ -4791,6 +4791,13 @@ static int __iw_setint_getnone(struct net_device *dev,
 		ret = wma_cli_set_command(adapter->session_id,
 					  WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
 					  set_value, VDEV_CMD);
+// [LGE_CHANGE_S] 2017.04.26, neo-wifi@lge.com, Add Reset Command for KPI log
+        hdd_debug("WE_TXRX_FWSTATS_RESET val %d", set_value);
+        ret = wma_cli_set_command(adapter->session_id,
+                      WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
+                      set_value, VDEV_CMD);
+// [LGE_CHANGE_E] 2017.04.26, neo-wifi@lge.com, Add Reset Command for KPI log
+
 		break;
 	}
 
@@ -5555,10 +5562,19 @@ static int __iw_setnone_getint(struct net_device *dev,
 	case WE_GET_NSS:
 	{
 		sme_get_config_param(mac_handle, sme_config);
-		*value = (sme_config->csrConfig.enable2x2 == 0) ? 1 : 2;
-		if (policy_mgr_is_current_hwmode_dbs(hdd_ctx->psoc))
-			*value = *value - 1;
-		hdd_debug("GET_NSS: Current NSS:%d", *value);
+//LGE_CHANGE_S, 18.04.18, protocol-wifi@lge.com, Change DBS mode check in WCN399X
+//		*value = (sme_config->csrConfig.enable2x2 == 0) ? 1 : 2;
+//		if (policy_mgr_is_current_hwmode_dbs(hdd_ctx->psoc))
+//			*value = *value - 1;
+//		hdd_debug("GET_NSS: Current NSS:%d", *value);
+		if (policy_mgr_is_current_hwmode_dbs(hdd_ctx->psoc)) {
+			hdd_debug("GET_NSS: Current mode is DBS.");
+			*value = 1;
+		} else {
+			hdd_debug("GET_NSS: Current mode isn't DBS.");
+			*value = 0;
+		}
+//LGE_CHANGE_E, 18.04.18, protocol-wifi@lge.com, Change DBS mode check in WCN399X
 		break;
 	}
 

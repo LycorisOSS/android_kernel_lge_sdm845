@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018, 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -145,11 +145,13 @@ lim_process_disassoc_frame(tpAniSirGlobal pMac, uint8_t *pRxPacketInfo,
 	/* Get reasonCode from Disassociation frame body */
 	reasonCode = sir_read_u16(pBody);
 
-	pe_nofl_info("Disassoc RX: vdev %d from %pM for %pM RSSI = %d reason %d mlm state = %d, sme state = %d systemrole = %d ",
-		     psessionEntry->smeSessionId, pHdr->sa, pHdr->da, frame_rssi,
-		     reasonCode, psessionEntry->limMlmState,
-		     psessionEntry->limSmeState,
-		     GET_LIM_SYSTEM_ROLE(psessionEntry));
+	pe_debug("Received Disassoc frame for Addr: " MAC_ADDRESS_STR
+		 "(mlm state=%s, sme state=%d RSSI=%d),"
+		 "with reason code %d [%s] from " MAC_ADDRESS_STR,
+		 MAC_ADDR_ARRAY(pHdr->da),
+		 lim_mlm_state_str(psessionEntry->limMlmState),
+		 psessionEntry->limSmeState, frame_rssi, reasonCode,
+		 lim_dot11_reason_str(reasonCode), MAC_ADDR_ARRAY(pHdr->sa));
 	lim_diag_event_report(pMac, WLAN_PE_DIAG_DISASSOC_FRAME_EVENT,
 		psessionEntry, 0, reasonCode);
 
@@ -309,9 +311,9 @@ lim_process_disassoc_frame(tpAniSirGlobal pMac, uint8_t *pRxPacketInfo,
 		reasonCode != eSIR_MAC_DEAUTH_LEAVING_BSS_REASON &&
 		reasonCode != eSIR_MAC_DISASSOC_LEAVING_BSS_REASON)) {
 		cds_flush_logs(WLAN_LOG_TYPE_FATAL,
-			       WLAN_LOG_INDICATOR_HOST_DRIVER,
-			       WLAN_LOG_REASON_DISCONNECT,
-			       false, false);
+				WLAN_LOG_INDICATOR_HOST_DRIVER,
+				WLAN_LOG_REASON_DISCONNECT,
+				false, false);
 	}
 } /*** end lim_process_disassoc_frame() ***/
 
